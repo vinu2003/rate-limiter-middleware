@@ -181,7 +181,7 @@ func (mData *middlewareData) rateLimiterMiddleWare(next http.Handler) http.Handl
 			return
 		}
 
-		if mData == nil {
+		if mData.RequestsAllowed == 0 || mData.WindowTime == 0 {
 			mData.RequestsAllowed = 100
 			mData.WindowTime = int64(60)
 		}
