@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/tebeka/deque"
 	"net/http"
@@ -38,7 +39,11 @@ func Test_rateLimiterMiddleWareSingleRequest(t *testing.T) {
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
-	handlerToTest := rateLimiterMiddleWare(nextHandler)
+	mData := middlewareData{
+		RequestsAllowed: 1,
+		WindowTime:      1,
+	}
+	handlerToTest := mData.rateLimiterMiddleWare(nextHandler)
 	handlerToTest.ServeHTTP(rr, req)
 
 	// Check the status code is what we expect.
@@ -91,9 +96,17 @@ func Test_rateLimiterMiddleWareMultipleRequest(t *testing.T) {
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
-	handlerToTest := rateLimiterMiddleWare(nextHandler)
+	mData := middlewareData{
+		RequestsAllowed: 1,
+		WindowTime:int64(1),
+	}
+	handlerToTest := mData.rateLimiterMiddleWare(nextHandler)
 
 	for _, req := range requests {
+		// Populate the request's context with our test data.
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, "RequestsAllowed", 1)
+		ctx = context.WithValue(ctx, "WindowTime", int64(1))
 		handlerToTest.ServeHTTP(rr, req)
 		// Check the status code is what we expect.
 		if status := rr.Code; status != http.StatusTooManyRequests {

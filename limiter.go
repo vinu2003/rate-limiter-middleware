@@ -14,10 +14,11 @@ import (
 // In memory implementation - single machine with multiple users
 // *************************************************************
 
-const (
-	requestsAllowed int = 100
-	WindowTime int64 = 60
-)
+type middlewareData struct {
+	RequestsAllowed int
+	WindowTime int64
+}
+
 // **********************************************************
 // Timestamp bucket for each IPAddress
 //
@@ -171,7 +172,7 @@ var slidingWindowLimiter = SlidingWindowRateLimiter{
 }
 
 // middle ware method
-func rateLimiterMiddleWare(next http.Handler) http.Handler {
+func (mData *middlewareData) rateLimiterMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, err := splitIpAddress(r.RemoteAddr)
 		if err != nil {
@@ -180,9 +181,14 @@ func rateLimiterMiddleWare(next http.Handler) http.Handler {
 			return
 		}
 
+		if mData == nil {
+			mData.RequestsAllowed = 100
+			mData.WindowTime = int64(60)
+		}
+
 		// check if IP address exists
 		if slidingWindowLimiter.ifIPAddrExists(ip) == false {
-			_ = slidingWindowLimiter.AddIPAddress(ip, 1, 1)
+			_ = slidingWindowLimiter.AddIPAddress(ip, mData.RequestsAllowed, mData.WindowTime)
 		}
 
 		if slidingWindowLimiter.AllowAccessToIPAddr(ip) == false {

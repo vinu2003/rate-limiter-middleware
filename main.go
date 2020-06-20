@@ -13,9 +13,10 @@ func FinalHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	mux := http.NewServeMux()
+	mData := new(middlewareData)
 
 	limitHandler := http.HandlerFunc(FinalHandler)
-	mux.Handle("/", rateLimiterMiddleWare(limitHandler))
+	mux.Handle("/", mData.rateLimiterMiddleWare(limitHandler))
 
 	log.Println("Listening on port : 4000...")
 	err := http.ListenAndServe(":4000", mux)
