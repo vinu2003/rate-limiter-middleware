@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"github.com/gomodule/redigo/redis"
 	"github.com/tebeka/deque"
 	"log"
 	"net"
@@ -70,6 +71,17 @@ func (ts *TimeStampsBucket) cleanupOlderTimeStamps(currentTimeStamp int64) error
 type SlidingWindowRateLimiter struct {
 	rlMutex sync.RWMutex
 	rateLimiterMap map[string]*TimeStampsBucket
+	conn redis.Conn
+}
+
+func (rl *SlidingWindowRateLimiter) getConnection() {
+	// default port for redis is 6379
+	rl.conn, err := redis.Dial("tcp", "localhost:6379")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// close the connection
+	_ = rl.conn.Close()
 }
 
 // check if IP address exists in sliding window
