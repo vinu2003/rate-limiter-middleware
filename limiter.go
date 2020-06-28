@@ -178,8 +178,8 @@ func (mData *middlewareData) rateLimiterMiddleWare(next http.Handler) http.Handl
 		}
 
 		if mData.RequestsAllowed == 0 || mData.WindowTime == 0 {
-			mData.RequestsAllowed = 0
-			mData.WindowTime = int64(0)
+			mData.RequestsAllowed = 100
+			mData.WindowTime = int64(60)
 		}
 
 		// check if IP address exists

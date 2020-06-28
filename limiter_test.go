@@ -41,6 +41,10 @@ func Test_rateLimiterMiddleWareSingleRequest(t *testing.T) {
 	mData := middlewareData{
 		RequestsAllowed: 1,
 		WindowTime:      1,
+		slidingWindowLimiter: &SlidingWindowRateLimiter{
+			rlMutex: *new(sync.RWMutex),
+			rateLimiterMap: make(map[string]*TimeStampsBucket),
+		},
 	}
 	handlerToTest := mData.rateLimiterMiddleWare(nextHandler)
 	handlerToTest.ServeHTTP(rr, req)
@@ -52,7 +56,7 @@ func Test_rateLimiterMiddleWareSingleRequest(t *testing.T) {
 	}
 }
 
-func Test_rateLimiterMiddleWareMultipleRequest(t *testing.T) {
+func Test_rateLimiterMiddleWareMultipleRequests(t *testing.T) {
 	req1, err := http.NewRequest("GET", "http://localhost:4000", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +93,19 @@ func Test_rateLimiterMiddleWareMultipleRequest(t *testing.T) {
 	}
 	req6.RemoteAddr = "127.0.0.1:54326"
 
-	requests := [...]*http.Request{req1, req2, req3, req4, req5, req6}
+	req7, err := http.NewRequest("GET", "http://localhost:4000", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req7.RemoteAddr = "127.0.0.1:54327"
+
+	req8, err := http.NewRequest("GET", "http://localhost:4000", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req8.RemoteAddr = "127.0.0.1:54328"
+
+	requests := [...]*http.Request{req1, req2, req3, req4, req5, req6, req7, req8}
 
 	rr := httptest.NewRecorder()
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +114,10 @@ func Test_rateLimiterMiddleWareMultipleRequest(t *testing.T) {
 	mData := middlewareData{
 		RequestsAllowed: 1,
 		WindowTime:int64(1),
+		slidingWindowLimiter: &SlidingWindowRateLimiter{
+			rlMutex: *new(sync.RWMutex),
+			rateLimiterMap: make(map[string]*TimeStampsBucket),
+		},
 	}
 	handlerToTest := mData.rateLimiterMiddleWare(nextHandler)
 
