@@ -17,6 +17,7 @@ import (
 type middlewareData struct {
 	RequestsAllowed int
 	WindowTime int64
+	slidingWindowLimiter *SlidingWindowRateLimiter
 }
 
 // **********************************************************
@@ -165,11 +166,6 @@ func splitIpAddress(remoteAddress string) (string, error) {
 	return ip, nil
 }
 
-// This global - TODO needs to be improved.
-var slidingWindowLimiter = SlidingWindowRateLimiter{
-	rlMutex:        *new(sync.RWMutex),
-	rateLimiterMap: make(map[string]*TimeStampsBucket),
-}
 
 // middle ware method
 func (mData *middlewareData) rateLimiterMiddleWare(next http.Handler) http.Handler {
@@ -182,16 +178,16 @@ func (mData *middlewareData) rateLimiterMiddleWare(next http.Handler) http.Handl
 		}
 
 		if mData.RequestsAllowed == 0 || mData.WindowTime == 0 {
-			mData.RequestsAllowed = 100
-			mData.WindowTime = int64(60)
+			mData.RequestsAllowed = 0
+			mData.WindowTime = int64(0)
 		}
 
 		// check if IP address exists
-		if slidingWindowLimiter.ifIPAddrExists(ip) == false {
-			_ = slidingWindowLimiter.AddIPAddress(ip, mData.RequestsAllowed, mData.WindowTime)
+		if mData.slidingWindowLimiter.ifIPAddrExists(ip) == false {
+			_ = mData.slidingWindowLimiter.AddIPAddress(ip, mData.RequestsAllowed, mData.WindowTime)
 		}
 
-		if slidingWindowLimiter.AllowAccessToIPAddr(ip) == false {
+		if mData.slidingWindowLimiter.AllowAccessToIPAddr(ip) == false {
 			http.Error(w, http.StatusText(429), http.StatusTooManyRequests)
 			return
 		}

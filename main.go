@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 	"net/http"
 )
 
@@ -14,6 +15,11 @@ func main() {
 
 	mux := http.NewServeMux()
 	mData := new(middlewareData)
+
+	mData.slidingWindowLimiter = &SlidingWindowRateLimiter{
+		rlMutex: *new(sync.RWMutex),
+		rateLimiterMap: make(map[string]*TimeStampsBucket),
+	}
 
 	limitHandler := http.HandlerFunc(FinalHandler)
 	mux.Handle("/", mData.rateLimiterMiddleWare(limitHandler))
